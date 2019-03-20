@@ -149,6 +149,7 @@ RUN chown -R jovyan:jovyan /home/jovyan
 USER jovyan
 
 
+VOLUME /home/jovyan/workspace
 WORKDIR /home/jovyan/
 # Trust all notebooks
 RUN find -name \*.ipynb  -print0 | xargs -0 jupyter trust
