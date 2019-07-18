@@ -1,0 +1,56 @@
+FROM brmather/pygplates-course:19-base
+
+ENV NB_USER jovyan
+
+EXPOSE 8888
+
+# note we also use xvfb which is required for viz
+ENTRYPOINT ["/usr/local/bin/tini", "--"]
+
+
+
+CMD ["/home/ipython/work/ipython_notebook.sh"]
+
+# Add pygplates stuff to PYTHONPATH
+ENV PYTHONPATH ${PYTHONPATH}:/usr/lib:/usr/local/lib/pygplates/revision19/
+ADD --chown=jovyan:jovyan . /home/$NB_USER/
+
+# More dependencies...
+RUN python2 -m pip install --no-cache-dir healpy jupyter
+
+# Copy GPlatesClassStruggle to Resources directory
+RUN git clone https://github.com/siwill22/GPlatesClassStruggle.git && \
+    mkdir /home/$NB_USER/Resources/GPlatesClassStruggle && \
+    mv GPlatesClassStruggle/*.py /home/$NB_USER/Resources/GPlatesClassStruggle/ && \
+    rm -rf GPlatesClassStruggle
+
+# Copy gwstools
+RUN git clone https://github.com/siwill22/gwstools.git && \
+    mv gwstools/*.py /home/$NB_USER/Resources/GPlatesClassStruggle/ && \
+    rm -rf gwstools
+
+# Copy platetree
+RUN git clone https://github.com/siwill22/platetree.git && \
+    mv platetree/*.py /home/$NB_USER/Resources/GPlatesClassStruggle/ && \
+    rm -rf platetree
+
+# Copy ATOM tools
+RUN git clone https://github.com/siwill22/atom_utils.git && \
+    mv atom_utils/*.py /home/$NB_USER/Resources/GPlatesClassStruggle/ && \
+    rm -rf atom_utils
+
+
+
+# change ownership of everything
+RUN chown -R jovyan:jovyan /home/jovyan
+USER jovyan
+
+
+VOLUME /home/jovyan/workspace
+WORKDIR /home/jovyan/
+# Trust all notebooks
+RUN find -name \*.ipynb  -print0 | xargs -0 jupyter trust
+
+
+# launch notebook
+CMD ["jupyter", "notebook", "--ip='0.0.0.0'", "--NotebookApp.token='' ", "--no-browser"]

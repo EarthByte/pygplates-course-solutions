@@ -52,6 +52,12 @@ RUN python2 -m pip install --no-cache-dir setuptools wheel Cython && \
     python2 -m pip install --no-cache-dir jupyter ipyparallel && \
     rm -rf /tmp/pip-*
 
+RUN wget https://github.com/matplotlib/basemap/archive/master.zip && \
+    unzip master.zip && \
+    cd basemap-master && \
+    python2 -m pip install --no-cache-dir . && \
+    cd .. && \
+    rm -rf master.zip basemap-master
 
 WORKDIR /opt/work/
 
@@ -59,6 +65,19 @@ WORKDIR /opt/work/
 RUN wget https://sourceforge.net/projects/gplates/files/pygplates/beta-revision-18/pygplates-ubuntu-bionic_2.1_1_amd64.deb && \
     dpkg -i pygplates-ubuntu-bionic_2.1_1_amd64.deb && \
     rm -rf pygplates-ubuntu-bionic_2.1_1_amd64.deb
+
+
+# Update to PyGPlates version 19
+RUN apt-get update -qq && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -yq --no-install-recommends \
+    cmake libboost-python1.65-dev
+ADD pygplates_rev19_src /opt/work/pygplates_rev19_src
+RUN cd pygplates_rev19_src && \
+    cmake . && \
+    make && \
+    make install && \
+    cd .. && \
+    rm pygplates_rev19_src
 
 
 # remove python3 installation
@@ -118,8 +137,10 @@ ENV PYTHONPATH ${PYTHONPATH}:/usr/lib:/usr/lib/pygplates/revision18/
 ADD --chown=jovyan:jovyan . /home/$NB_USER/
 
 # More dependencies...
-RUN python2 -m pip install --no-cache-dir healpy && \
-    rm -rf /tmp/pip-*
+RUN python2 -m pip install --no-cache-dir \
+    healpy \
+    git+https://github.com/EarthByte/pyBacktrack.git \
+    && rm -rf /tmp/pip-*
 
 # Copy GPlatesClassStruggle to Resources directory
 RUN git clone https://github.com/siwill22/GPlatesClassStruggle.git && \
