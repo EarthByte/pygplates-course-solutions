@@ -15,25 +15,25 @@ RUN apt-get update -qq && \
     libboost-test-dev \
     libboost-system-dev \
     libqt4-dev \
-	libgdal-dev \
+    libgdal-dev \
     libgdal20 \
     gdal-abi-2-2-3 \
-	libcgal-dev \
+    libcgal-dev \
     libgeos-dev \
-	libproj-dev \
-	libqwt-dev \
-	libxrender-dev \
+    libproj-dev \
+    libqwt-dev \
+    libxrender-dev \
     libice-dev \
     libsm-dev \
     libfreetype6-dev \
     libfontconfig1-dev \
-	git \
-	wget \
+    git \
+    wget \
     g++ \
-	gcc && \
-	apt-get remove -yq python3 && \
+    gcc && \
+    apt-get remove -yq python3 && \
     apt-get autoremove -yq && \
-	apt-get clean && rm -rf /var/lib/apt/lists/*
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 
 
