@@ -1,39 +1,24 @@
 
-FROM ubuntu:18.04
+FROM brmather/pygplates-compile:22
 
 # install dependencies for pygplates
 RUN apt-get update -qq && \
     DEBIAN_FRONTEND=noninteractive apt-get install -yq --no-install-recommends \
-    libglew-dev \
     python2.7-dev \
     python-pip \
-    libboost-dev \
-    libboost-python-dev \
-    libboost-python1.65.1 \
-    libboost-thread-dev \
-    libboost-program-options-dev \
-    libboost-test-dev \
-    libboost-system-dev \
-    libqt4-dev \
-    libgdal-dev \
-    libgdal20 \
-    gdal-abi-2-2-3 \
-    libcgal-dev \
-    libgeos-dev \
-    libproj-dev \
-    libqwt-dev \
-    libxrender-dev \
-    libice-dev \
-    libsm-dev \
+    xvfb \
     libfreetype6-dev \
     libfontconfig1-dev \
+    cmake \
     git \
-    wget \
-    g++ \
-    gcc && \
+    gfortran \
+    wget && \
     apt-get remove -yq python3 && \
-    apt-get autoremove -yq && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# libgdal-dev \
+# libgdal20 \
+# gdal-abi-2-2-3 \
 
 
 
@@ -42,14 +27,17 @@ RUN apt-get update -qq && \
 RUN python2 -m pip install --no-cache-dir setuptools wheel Cython && \
     python2 -m pip install --upgrade --no-cache-dir numpy scipy matplotlib && \
     python2 -m pip install --no-cache-dir --upgrade \
-    pandas \
-    sympy \
-    boost \
-    pillow \
-    cartopy \
-    nose && \
+        pandas \
+        sympy \
+        boost \
+        pillow \
+        cartopy \
+        nose && \
     python2 -m pip install git+https://github.com/matplotlib/basemap.git && \
-    python2 -m pip install --no-cache-dir jupyter ipyparallel && \
+    python2 -m pip install --no-cache-dir \
+        jupyter \
+        ipyparallel \
+        stripy && \
     rm -rf /tmp/pip-*
 
 RUN wget https://github.com/matplotlib/basemap/archive/master.zip && \
@@ -60,24 +48,6 @@ RUN wget https://github.com/matplotlib/basemap/archive/master.zip && \
     rm -rf master.zip basemap-master
 
 WORKDIR /opt/work/
-
-# use wget to get the correct pygplates package from sourceforge
-RUN wget https://sourceforge.net/projects/gplates/files/pygplates/beta-revision-18/pygplates-ubuntu-bionic_2.1_1_amd64.deb && \
-    dpkg -i pygplates-ubuntu-bionic_2.1_1_amd64.deb && \
-    rm -rf pygplates-ubuntu-bionic_2.1_1_amd64.deb
-
-
-# Update to PyGPlates version 19
-RUN apt-get update -qq && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -yq --no-install-recommends \
-    cmake libboost-python1.65-dev
-ADD pygplates_rev19_src /opt/work/pygplates_rev19_src
-RUN cd pygplates_rev19_src && \
-    cmake . && \
-    make && \
-    make install && \
-    cd .. && \
-    rm pygplates_rev19_src
 
 
 # remove python3 installation
@@ -105,18 +75,12 @@ RUN git clone https://github.com/tonysyu/mpltools.git mpltools && \
 # COPY jupyter_notebook_config.py /home/$NB_USER/.jupyter/
 # RUN chown -R $NB_USER:root /home/$NB_USER/.jupyter
 
-# Install Tini.. this is required because CMD (below) doesn't play nice with notebooks for some reason:
-# https://github.com/ipython/ipython/issues/7062, https://github.com/jupyter/notebook/issues/334
-RUN wget https://github.com/krallin/tini/releases/download/v0.10.0/tini && \
-    echo "1361527f39190a7338a0b434bd8c88ff7233ce7b9a4876f3315c22fce7eca1b0 *tini" | sha256sum -c - && \
-    mv tini /usr/local/bin/tini && \
-    chmod +x /usr/local/bin/tini
+# Add Tini
+ENV TINI_VERSION v0.18.0
+ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
+RUN chmod +x /tini
+ENTRYPOINT ["/tini", "--"]
 
-# # Add Tini
-# ENV TINI_VERSION v0.9.0
-# ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
-# RUN chmod +x /tini
-# ENTRYPOINT ["/tini", "--"]
 
 # add a notebook profile
 RUN mkdir -p -m 700 /root/.jupyter/ && \
@@ -124,19 +88,20 @@ RUN mkdir -p -m 700 /root/.jupyter/ && \
 
 
 EXPOSE 8888
-
-# note we also use xvfb which is required for viz
-ENTRYPOINT ["/usr/local/bin/tini", "--"]
-
-
-
-CMD ["/home/ipython/work/ipython_notebook.sh"]
+EXPOSE 9999
 
 # Add pygplates stuff to PYTHONPATH
 ENV PYTHONPATH ${PYTHONPATH}:/usr/lib:/usr/lib/pygplates/revision18/
 ADD --chown=jovyan:jovyan . /home/$NB_USER/
 
 # More dependencies...
+
+# Plate Tectonic Tools
+RUN python2 -m pip install --no-cache-dir \
+    git+https://github.com/EarthByte/PlateTectonicTools.git \
+    && rm -rf PlateTectonicTools
+
+# pyBacktrack
 RUN python2 -m pip install --no-cache-dir \
     healpy \
     git+https://github.com/EarthByte/pyBacktrack.git \
